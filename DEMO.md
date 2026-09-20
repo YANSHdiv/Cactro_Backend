@@ -1,153 +1,135 @@
-# Event Booking System - 3–4 Minute Demo Walkthrough & Script
+# 3–4 Minute Demo Video Guide: Event Booking System
 
-This guide outlines a crisp, professional 3–4 minute walkthrough for a Loom recording or live technical evaluation. It uses Swagger UI (`/docs`) and terminal commands to demonstrate all core functionality, role-based access, concurrency safety, asynchronous emails, and empirical performance gains.
-
----
-
-## Live Production Endpoints
-- **Live Base URL**: `https://event-booking-api-production-a76e.up.railway.app`
-- **Swagger / OpenAPI UI**: [https://event-booking-api-production-a76e.up.railway.app/docs](https://event-booking-api-production-a76e.up.railway.app/docs)
-- **Health Check**: [https://event-booking-api-production-a76e.up.railway.app/health](https://event-booking-api-production-a76e.up.railway.app/health)
+This document provides the exact step-by-step script, credentials, and Swagger endpoints for recording your 3–4 minute Loom walkthrough video.
 
 ---
 
-## Demo Checklist & Timeline (Total: ~3.5 minutes)
+## 1. Quick Reference & Credentials
 
-| Timestamp | Phase | Action / Endpoint | Key Talking Point |
-| :---: | :---: | :---: | :---: |
-| **0:00 - 0:30** | **Architecture Overview** | Open `/docs` in browser | FastAPI, PostgreSQL row-level locks, JWT auth, Resend email worker |
-| **0:30 - 1:00** | **Organizer Flow** | `POST /auth/register`<br>`POST /events` | Role enforcement, event creation with capacity constraint |
-| **1:00 - 1:40** | **Customer Flow & Email** | `POST /auth/register`<br>`GET /events`<br>`POST /events/{id}/book` | Role-based authorization, inventory decrement, **Background Task 1 (Booking Email)** |
-| **1:40 - 2:10** | **Organizer Update & Fan-out** | `PUT /events/{id}` | Capacity protection, **Background Task 2 (Deduplicated Fan-out Email)** |
-| **2:10 - 2:50** | **Baseline Concurrency Breakdown** | Terminal / `PERFORMANCE.md` | Show naive check-then-act bug, +324% oversell, throughput collapse |
-| **2:50 - 3:30** | **Optimized Concurrency & Results** | Terminal / `PERFORMANCE.md` | Explain `SELECT FOR UPDATE`, connection pooling, 0 oversold tickets |
+- **Live Swagger / OpenAPI UI**: [https://event-booking-api-production-a76e.up.railway.app/docs](https://event-booking-api-production-a76e.up.railway.app/docs)
+- **Live Health Check**: [https://event-booking-api-production-a76e.up.railway.app/health](https://event-booking-api-production-a76e.up.railway.app/health)
+
+### Prepared Demo Accounts
+| Role | Email | Password | Notes |
+| :--- | :--- | :--- | :--- |
+| **Organizer** | `demo.organizer@cactro.com` | `OrganizerPass2026!` | Owns Demo Event #8 |
+| **Customer** | `divyanshraj2604@gmail.com` | `customerpass123` | Delivers real emails to your Gmail inbox |
+| **Customer (Generic)** | `demo.customer@cactro.com` | `CustomerPass2026!` | Alternative generic customer account |
+
+### Prepared Demo Event
+- **Event ID**: `8`
+- **Title**: `Tech Conference 2026`
+- **Location**: `Jaipur`
+- **Capacity**: `20`
+- **Initial Available Tickets**: `20`
+- **Current Bookings**: `0` (Ready for you to book during recording!)
 
 ---
 
-## Detailed Step-by-Step Execution & Script
+## 2. Step-by-Step Recording Sequence (Total: ~3.5 minutes)
 
-### Step 1: System Intro (0:00 - 0:30)
-**Action**: Navigate to `http://localhost:8000/docs` (or your deployed URL).
-> **Spoken Script**:
-> *"Hi everyone, today I'm demonstrating our high-concurrency Event Booking System backend. Built with Python, FastAPI, SQLAlchemy, and PostgreSQL, it features strict role-based access control between Event Organizers and Customers, concurrency-safe ticket reservations using row-level database locking, and asynchronous background email delivery powered by the Resend API."*
+### Step A: System Intro & Architecture (0:00 - 0:30)
+**Action**: Open Swagger UI at `https://event-booking-api-production-a76e.up.railway.app/docs`.
+> **What to Say**:
+> *"Hi everyone, today I'm demonstrating our high-concurrency Event Booking System backend deployed live on Railway with PostgreSQL. It features strict role-based access control, concurrency-safe reservations via PostgreSQL row-level locking (`SELECT FOR UPDATE`), and asynchronous background email notifications powered by the Resend REST API."*
 
 ---
 
-### Step 2: Organizer Authentication & Event Creation (0:30 - 1:00)
+### Step B: Customer Login & Booking (0:30 - 1:15)
 **Action**:
-1. In Swagger, open `POST /auth/register`.
-2. Click **Try it out** and execute:
+1. In Swagger UI, expand `POST /auth/login`. Click **Try it out** and execute:
 ```json
 {
-  "name": "Sarah Connor",
-  "email": "organizer@techconf.org",
-  "password": "organizerSecret2026",
-  "role": "ORGANIZER"
+  "email": "divyanshraj2604@gmail.com",
+  "password": "customerpass123"
 }
 ```
-3. Copy the returned `access_token` and click **Authorize** at the top of Swagger. Paste the token.
-4. Open `POST /events` and execute:
+2. Copy the returned `access_token`. Click the **Authorize 🔓** button at the top right of Swagger, paste the token, and click **Authorize**.
+3. Scroll to `POST /events/{event_id}/book`. Click **Try it out**:
+   - `event_id`: `8`
+   - Request Body:
 ```json
 {
-  "title": "Global AI & Cloud Summit 2026",
-  "description": "Premier tech summit covering generative systems and distributed scale.",
-  "location": "Moscone Center, San Francisco, CA",
-  "start_time": "2026-11-15T09:00:00Z",
-  "capacity": 50
+  "quantity": 4
 }
 ```
-> **Spoken Script**:
-> *"First, we register an Organizer and authenticate via JWT. The organizer creates a new event with a finite capacity of 50 tickets. Notice that `available_tickets` is automatically initialized to 50, and only organizers are permitted to create events."*
+4. Click **Execute**. Show the `201 Created` response.
+5. (Optional quick check): Expand `GET /events/8`, click **Execute** → show `available_tickets` decremented from 20 to 16!
+> **What to Say**:
+> *"First, we log in as a Customer. We book 4 tickets for Event #8, 'Tech Conference 2026'. The booking succeeds immediately with HTTP 201, and our database atomically decrements the remaining tickets from 20 to 16. Notice that right after the transaction commits, FastAPI BackgroundTasks dispatches a real booking confirmation email outside the database transaction."*
 
 ---
 
-### Step 3: Customer Registration, Event Browsing & Booking (1:00 - 1:40)
+### Step C: Show Real Booking Confirmation Email (1:15 - 1:45)
+**Action**: Switch tabs to your Gmail inbox (`divyanshraj2604@gmail.com`).
+Show the new email from `onboarding@resend.dev`:
+- **Subject**: `Booking Confirmation: Tech Conference 2026 (Booking #...)`
+- **Content**: Shows Booking ID, event title, venue (Jaipur), and 4 tickets reserved.
+> **What to Say**:
+> *"Here in my real inbox, the booking confirmation email has already arrived. It includes the booking ID, venue in Jaipur, date, and 4 reserved tickets. Because email delivery runs asynchronously in the background, external API latency never holds database locks or delays customer responses."*
+
+---
+
+### Step D: Organizer Login & Event Update (1:45 - 2:30)
 **Action**:
-1. Register a customer via `POST /auth/register`:
+1. Click **Authorize** in Swagger, click **Logout**.
+2. Go back to `POST /auth/login`, click **Try it out**, and execute:
 ```json
 {
-  "name": "Alex Mercer",
-  "email": "alex.customer@gmail.com",
-  "password": "customerSecret2026",
-  "role": "CUSTOMER"
+  "email": "demo.organizer@cactro.com",
+  "password": "OrganizerPass2026!"
 }
 ```
-2. Click **Authorize** with Alex's customer token.
-3. Call `GET /events` to browse upcoming events.
-4. Call `POST /events/1/book` with:
+3. Copy the organizer's `access_token`. Click **Authorize**, paste it, and click **Authorize**.
+4. Scroll to `PUT /events/{event_id}`. Click **Try it out**:
+   - `event_id`: `8`
+   - Request Body:
 ```json
 {
-  "quantity": 2
+  "location": "Jaipur Exhibition & Convention Centre (JECC)"
 }
 ```
-5. Call `GET /bookings/me` to view Alex's reservations.
-6. Open your terminal or email inbox/logs to show the real email dispatch confirmation:
-   `[EMAIL SERVICE] Successfully sent email to divyanshraj2604@gmail.com. Response: {'id': '01a0bdc3-8c82-76b9-a893-32f7ef993353'}`
-> **Spoken Script**:
-> *"Now we switch to a Customer role. Customers can browse public events and reserve tickets. When Alex books 2 tickets, our booking transaction atomically decrements available tickets from 50 to 48. Notice that right after the database transaction commits, FastAPI BackgroundTasks automatically triggers our first asynchronous task: dispatching a real booking confirmation email via the Resend API (Message ID: 01a0bdc3-8c82-76b9-a893-32f7ef993353)—completely decoupled from the HTTP response."*
+5. Click **Execute**. Show `200 OK` with updated location.
+> **What to Say**:
+> *"Now we switch to our Organizer account. As the creator of this event, the organizer updates the venue to the Jaipur Exhibition Centre. In the background, our second task queries all distinct customers who booked this event and fans out update emails."*
 
 ---
 
-### Step 4: Event Update & Customer Notification Fan-Out (1:40 - 2:10)
-**Action**:
-1. Switch back to Sarah (the organizer).
-2. Call `PUT /events/1` to update venue and schedule:
-```json
-{
-  "location": "Moscone West, Grand Ballroom",
-  "start_time": "2026-11-15T10:00:00Z"
-}
-```
-3. Show terminal log showing Background Task 2 fan-out:
-   `[EMAIL SERVICE] Successfully sent email to divyanshraj2604@gmail.com. Response: {'id': '01a0bdc3-993a-7313-8b78-6766a87d609f'}`
-   `[EMAIL SERVICE] Finished sending updates to 1 customer(s). Sent: 1`
-> **Spoken Script**:
-> *"When the organizer updates event details, our second background task kicks in: it queries all distinct customers who reserved tickets for this event and fans out personalized update notifications with the modified details (Message ID: 01a0bdc3-993a-7313-8b78-6766a87d609f), deduplicating recipients to prevent spam."*
+### Step E: Show Event-Update Email (2:30 - 2:50)
+**Action**: Switch back to your Gmail inbox and refresh.
+Show the second email:
+- **Subject**: `Important Update: Your Event 'Tech Conference 2026' Has Been Updated`
+- **Content**: Shows updated location: `Jaipur Exhibition & Convention Centre (JECC)`.
+> **What to Say**:
+> *"Refreshing my inbox, we see the real event update email delivered to the customer, informing them of the updated venue without duplicating emails across multiple tickets."*
 
 ---
 
-### Step 5: Baseline Concurrency Breakdown (2:10 - 2:50)
-**Action**: Switch to your terminal or display `PERFORMANCE.md`.
-> **Spoken Script**:
-> *"Now let's examine the core engineering challenge: concurrency. In our baseline implementation, we simulated the standard LLM-generated read-check-update pattern. When we ran a real Locust stress test targeting a 50-capacity event across 10 to 200 concurrent users, the naive approach failed catastrophically.
-> Under 50 concurrent users, it sold 212 tickets for a 50-ticket event—a 324% oversell rate. At 100 users, throughput collapsed from 182 req/s down to 70 req/s, and p95 latency reached nearly 1 second because threads blocked each other without safe synchronization."*
+### Step F: Code Walkthrough & SELECT FOR UPDATE (2:50 - 3:20)
+**Action**: Show VS Code / IDE highlighting [`app/api/routers/events.py`](file:///c:/Users/div18/Desktop/Cactro_Backend/app/api/routers/events.py#L184-L210) (Lines 187–210):
+```python
+event = (
+    db.query(Event)
+    .filter(Event.id == event_id)
+    .with_for_update()
+    .first()
+)
+if event.available_tickets < payload.quantity:
+    raise HTTPException(status_code=409, detail="Insufficient tickets remaining")
+
+event.available_tickets -= payload.quantity
+booking = Booking(event_id=event.id, customer_id=current_user.id, quantity=payload.quantity)
+db.add(booking)
+db.commit()
+```
+> **What to Say**:
+> *"Here is the core concurrency implementation in `events.py`. Instead of the naive in-memory check-then-act pattern, we acquire a row-level lock using SQLAlchemy's `with_for_update()` within an atomic PostgreSQL transaction. This serializes inventory decrements and prevents overselling."*
 
 ---
 
-### Step 6: The Optimization & Measured Delta (2:50 - 3:30)
-**Action**: Show the `SELECT FOR UPDATE` code snippet in `app/api/routers/events.py` and the before/after comparison table in `PERFORMANCE.md`.
-> **Spoken Script**:
-> *"To fix this, we implemented PostgreSQL row-level locking via SQLAlchemy's `with_for_update()`, enforced database-level check constraints, tuned connection pooling to 25 connections with 15 overflow, and ensured email execution remains strictly outside transaction locks.
-> We then re-ran the exact same Locust scenario. The result: across all concurrency tiers from 10 to 200 users, exactly 50 tickets were booked with zero overselling. At 100 concurrent users, throughput jumped by +90.5% compared to the baseline, from 70.8 to 134.9 requests per second, and 1,215 requests were successfully processed with sub-second tail latencies.
-> Everything is fully tested, Dockerized, and ready for production."*
-
----
-
-## Quick cURL Commands for Quick Terminal Testing
-
-### 1. Register Organizer
-```bash
-curl -X POST "http://localhost:8000/auth/register" \
-  -H "Content-Type: application/json" \
-  -d '{"name":"Sarah Connor","email":"organizer@example.com","password":"password123","role":"ORGANIZER"}'
-```
-
-### 2. Create Event (Replace `<ORG_TOKEN>`)
-```bash
-curl -X POST "http://localhost:8000/events" \
-  -H "Authorization: Bearer <ORG_TOKEN>" \
-  -H "Content-Type: application/json" \
-  -d '{"title":"Summer Tech Fest","location":"Auditorium A","start_time":"2026-10-01T10:00:00Z","capacity":50}'
-```
-
-### 3. Register Customer & Book Ticket (Replace `<CUST_TOKEN>`)
-```bash
-curl -X POST "http://localhost:8000/auth/register" \
-  -H "Content-Type: application/json" \
-  -d '{"name":"John Doe","email":"john@example.com","password":"password123","role":"CUSTOMER"}'
-
-curl -X POST "http://localhost:8000/events/1/book" \
-  -H "Authorization: Bearer <CUST_TOKEN>" \
-  -H "Content-Type: application/json" \
-  -d '{"quantity":2}'
-```
+### Step G: Performance Results (Baseline vs. Optimized) (3:20 - 3:50)
+**Action**: Show the Comparison Table in [`README.md`](file:///c:/Users/div18/Desktop/Cactro_Backend/README.md) or [`PERFORMANCE.md`](file:///c:/Users/div18/Desktop/Cactro_Backend/PERFORMANCE.md):
+- **Baseline**: 212 tickets booked for 50-ticket event (+324% oversell) at 50 users. At 100 users, throughput collapsed by 61.2% down to 70.8 RPS.
+- **Optimized**: **0 oversold tickets across all concurrency tiers (10, 25, 50, 100, 200 users)**, and sustained **134.9 RPS (+90.5%)** at 100 concurrent users.
+> **What to Say**:
+> *"Finally, here are our real Locust benchmark results on a 50-capacity event. The naive baseline collapsed at 100 concurrent users and oversold by up to 324%. Our optimized row-level locking implementation guaranteed zero overselling across all tiers and maintained 134.9 requests per second at 100 users—a 90.5% throughput improvement under contention. Thank you!"*
