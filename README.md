@@ -282,7 +282,7 @@ Stress testing was performed using Locust targeting a single finite-capacity eve
 
 **Baseline Bottleneck Analysis**:
 - **Catastrophic Overselling**: At 50 concurrent users, the naive system sold 212 tickets for a 50-capacity event (+324% oversold).
-- **Breaking Point**: At 100 concurrent users, throughput collapsed by **61.2%** (from 182.4 to 70.8 req/s), while average latency jumped to 579.8ms and p95 approached 1 second. Connection pool starvation caused workers to time out.
+- **Breaking Point**: At 100 concurrent users, throughput collapsed by **61.2%** (from 182.4 to 70.8 req/s), while average latency jumped to 579.8ms and p95 approached 1 second due to uncoordinated concurrent state mutations and severe request queueing.
 
 ---
 

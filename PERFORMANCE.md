@@ -51,9 +51,9 @@ Because `SELECT` without row locking does not lock the row at the PostgreSQL lev
 1. **Catastrophic Overselling**:
    At every concurrency level, the system catastrophically oversold tickets. At 50 concurrent users, **212 tickets were sold for a 50-ticket event (+324% oversell)**.
 2. **Degradation / Breaking Point**:
-   - **Throughput Collapse**: Throughput peaked at 25 users (182.4 req/s), maintained moderate performance up to 50 users (166.1 req/s), and then **collapsed by 61.2%** at 100 users down to 70.8 req/s.
-   - **Latency Explosion**: Average response time rose from 31.8ms at 10 users to 579.8ms at 100 users (an **18.2x slowdown**). p95 response time breached 900ms at 100 users and exceeded 1.3 seconds at 200 users.
-   - **Connection Exhaustion**: Unmanaged transactions caused connection hoarding, leading to timeouts when concurrent workers starved the database connection pool.
+   - **Throughput Collapse**: Throughput peaked at 25 users (182.4 req/s), degraded at 50 users (166.1 req/s), and then **collapsed by 61.2%** at 100 users down to 70.8 req/s.
+   - **Latency Explosion**: Average response time rose from 31.8ms at 10 users to 579.8ms at 100 users (an **18.2x slowdown**). p95 response time breached 900ms at 100 users and reached 1.3 seconds at 200 users.
+   - **High-Contention Stalling**: Because hundreds of concurrent requests were competing to mutate the same unlocked row without synchronization, the application experienced severe request queueing and degrading completion rates.
 
 ---
 
