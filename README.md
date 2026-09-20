@@ -185,13 +185,34 @@ Email sending is handled asynchronously via FastAPI `BackgroundTasks`:
 - **Task 2 (Event Update Fan-out)**: When an organizer updates an event (`PUT /events/{id}`), the system queries distinct customers who booked that event (`SELECT DISTINCT customer_id FROM bookings WHERE event_id = :id`) and sends individual update notices. Duplicate recipients are eliminated.
 - **Transaction Isolation**: All email processing occurs **after and outside** the database transaction. If the Resend API experiences high latency or downtime, it never holds database locks or blocks the HTTP response.
 
-### Email Configuration
-Configure using `.env` variables:
+### Email Configuration & Verified Delivery Proof
+Configure using environment variables:
 ```bash
 RESEND_API_KEY=re_your_api_key_here
 FROM_EMAIL=onboarding@resend.dev
 ```
 If `RESEND_API_KEY` is missing or unconfigured, the system logs an explicit warning rather than failing or silently pretending delivery occurred.
+
+#### Live Verified Email Delivery (Captured on Production Railway Server)
+During live verification with recipient `divyanshraj2604@gmail.com`, both background workflows were executed against the deployed application and verified via Railway container logs:
+1. **Background Task 1 (Booking Confirmation)**:
+   - Recipient: `divyanshraj2604@gmail.com`
+   - Trigger: `POST /events/3/book` (Quantity: 2)
+   - HTTP Status: `200 OK` from `https://api.resend.com/emails`
+   - Resend Message ID: `01a0bdc3-8c82-76b9-a893-32f7ef993353`
+2. **Background Task 2 (Event Update Fan-out)**:
+   - Recipient: `divyanshraj2604@gmail.com`
+   - Trigger: `PUT /events/3` (Updated venue to "Moscone Center, Grand Ballroom West")
+   - HTTP Status: `200 OK` from `https://api.resend.com/emails`
+   - Resend Message ID: `01a0bdc3-993a-7313-8b78-6766a87d609f`
+
+```text
+INFO:httpx:HTTP Request: POST https://api.resend.com/emails "HTTP/1.1 200 OK"
+INFO:email_service:[EMAIL SERVICE] Successfully sent email to divyanshraj2604@gmail.com. Response: {'id': '01a0bdc3-8c82-76b9-a893-32f7ef993353'}
+INFO:httpx:HTTP Request: POST https://api.resend.com/emails "HTTP/1.1 200 OK"
+INFO:email_service:[EMAIL SERVICE] Successfully sent email to divyanshraj2604@gmail.com. Response: {'id': '01a0bdc3-993a-7313-8b78-6766a87d609f'}
+INFO:email_service:[EMAIL SERVICE] Finished sending updates to 1 customer(s). Sent: 1
+```
 
 ---
 

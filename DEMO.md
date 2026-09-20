@@ -81,10 +81,10 @@ This guide outlines a crisp, professional 3–4 minute walkthrough for a Loom re
 }
 ```
 5. Call `GET /bookings/me` to view Alex's reservations.
-6. Open your terminal or email inbox/logs to show the email dispatch log:
-   `[EMAIL SERVICE] Booking confirmation dispatched for #1 to alex.customer@gmail.com`
+6. Open your terminal or email inbox/logs to show the real email dispatch confirmation:
+   `[EMAIL SERVICE] Successfully sent email to divyanshraj2604@gmail.com. Response: {'id': '01a0bdc3-8c82-76b9-a893-32f7ef993353'}`
 > **Spoken Script**:
-> *"Now we switch to a Customer role. Customers can browse public events and reserve tickets. When Alex books 2 tickets, our booking transaction atomically decrements available tickets from 50 to 48. Notice that right after the database transaction commits, FastAPI BackgroundTasks automatically triggers our first asynchronous task: dispatching a real booking confirmation email containing the booking ID, venue, and date—completely decoupled from the HTTP response."*
+> *"Now we switch to a Customer role. Customers can browse public events and reserve tickets. When Alex books 2 tickets, our booking transaction atomically decrements available tickets from 50 to 48. Notice that right after the database transaction commits, FastAPI BackgroundTasks automatically triggers our first asynchronous task: dispatching a real booking confirmation email via the Resend API (Message ID: 01a0bdc3-8c82-76b9-a893-32f7ef993353)—completely decoupled from the HTTP response."*
 
 ---
 
@@ -99,9 +99,10 @@ This guide outlines a crisp, professional 3–4 minute walkthrough for a Loom re
 }
 ```
 3. Show terminal log showing Background Task 2 fan-out:
+   `[EMAIL SERVICE] Successfully sent email to divyanshraj2604@gmail.com. Response: {'id': '01a0bdc3-993a-7313-8b78-6766a87d609f'}`
    `[EMAIL SERVICE] Finished sending updates to 1 customer(s). Sent: 1`
 > **Spoken Script**:
-> *"When the organizer updates event details, our second background task kicks in: it queries all distinct customers who reserved tickets for this event and fans out personalized update notifications with the modified details, deduplicating recipients to prevent spam."*
+> *"When the organizer updates event details, our second background task kicks in: it queries all distinct customers who reserved tickets for this event and fans out personalized update notifications with the modified details (Message ID: 01a0bdc3-993a-7313-8b78-6766a87d609f), deduplicating recipients to prevent spam."*
 
 ---
 
