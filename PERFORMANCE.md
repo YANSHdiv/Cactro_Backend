@@ -11,7 +11,9 @@ All metrics below are derived directly from actual Locust load test runs executi
 - **Operating System**: Windows (AMD64)
 - **Runtime**: Python 3.12.4
 - **Web Framework**: FastAPI 0.141.1 + Uvicorn
-- **Database**: PostgreSQL 16 (running in isolated container `event-booking-db` on port 5433)
+- **Database**: PostgreSQL 16 (running in isolated container `event-booking-db` locally and Railway managed Postgres in cloud)
+- **Live Deployment URL**: `https://event-booking-api-production-a76e.up.railway.app`
+- **Swagger Documentation**: `https://event-booking-api-production-a76e.up.railway.app/docs`
 - **ORM / Driver**: SQLAlchemy 2.0.54 with `psycopg2-binary`
 - **Load Testing Tool**: Locust 2.46.6 (Headless mode)
 - **Target Event Capacity**: Exactly 50 tickets

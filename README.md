@@ -313,7 +313,13 @@ Stress testing was performed using Locust targeting a single finite-capacity eve
 
 ## 13. Deployment
 
-The production deployment package is completely containerized and ready for 1-click cloud deployment on platforms like Render, Railway, or Fly.io:
+### Live Production Deployment
+- **Live Base URL**: `https://event-booking-api-production-a76e.up.railway.app`
+- **Interactive Swagger / OpenAPI Docs**: [https://event-booking-api-production-a76e.up.railway.app/docs](https://event-booking-api-production-a76e.up.railway.app/docs)
+- **Health Check Endpoint**: [https://event-booking-api-production-a76e.up.railway.app/health](https://event-booking-api-production-a76e.up.railway.app/health)
+- **Hosted Database**: PostgreSQL 16 on Railway (`event-booking-system`)
+
+The production deployment package is containerized and configured for zero-downtime deployment:
 - **`Dockerfile`**: Multi-stage, minimal Python 3.12 slim image with libpq and PostgreSQL build tools.
 - **`render.yaml`**: Full Render Blueprint defining both the web service and the managed PostgreSQL database.
 - **`Procfile`**: Standard ASGI process definition.

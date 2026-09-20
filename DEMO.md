@@ -4,6 +4,13 @@ This guide outlines a crisp, professional 3–4 minute walkthrough for a Loom re
 
 ---
 
+## Live Production Endpoints
+- **Live Base URL**: `https://event-booking-api-production-a76e.up.railway.app`
+- **Swagger / OpenAPI UI**: [https://event-booking-api-production-a76e.up.railway.app/docs](https://event-booking-api-production-a76e.up.railway.app/docs)
+- **Health Check**: [https://event-booking-api-production-a76e.up.railway.app/health](https://event-booking-api-production-a76e.up.railway.app/health)
+
+---
+
 ## Demo Checklist & Timeline (Total: ~3.5 minutes)
 
 | Timestamp | Phase | Action / Endpoint | Key Talking Point |
