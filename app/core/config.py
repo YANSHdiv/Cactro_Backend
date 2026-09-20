@@ -19,8 +19,8 @@ class Settings(BaseSettings):
     RESEND_API_KEY: str = ""
     FROM_EMAIL: str = "onboarding@resend.dev"
 
-    # Concurrency mode: "naive" (for baseline demonstration) or "optimized" (production default)
-    CONCURRENCY_MODE: str = "naive"
+    # Concurrency mode: production optimized
+    CONCURRENCY_MODE: str = "optimized"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 

@@ -16,10 +16,16 @@ DB_URL = os.getenv(
 
 def reset_benchmark(capacity: int, mode: str):
     url = f"{API_BASE_URL}/test/reset-benchmark?capacity={capacity}&concurrency_mode={mode}"
-    with httpx.Client(timeout=10.0) as client:
-        resp = client.post(url)
-        resp.raise_for_status()
-        return resp.json()
+    for attempt in range(3):
+        try:
+            with httpx.Client(timeout=30.0) as client:
+                resp = client.post(url)
+                resp.raise_for_status()
+                return resp.json()
+        except Exception as e:
+            if attempt == 2:
+                raise
+            time.sleep(3)
 
 
 def get_db_stats(event_id: int):
@@ -150,7 +156,7 @@ def run_scenario(mode: str, concurrency_levels=[10, 25, 50, 100, 200], capacity=
         results.append(result_row)
         print(f"    RPS: {result_row['requests_per_sec']:.1f} | Avg Latency: {result_row['avg_latency_ms']:.1f}ms | p95: {result_row['p95_latency_ms']:.1f}ms")
         print(f"    Total Reqs: {result_row['total_requests']} | Booked: {result_row['booked_tickets']}/{capacity} | Oversold: {result_row['oversold_tickets']} tickets")
-        time.sleep(1)
+        time.sleep(3)
 
     out_file = f"benchmark_results/{mode}_summary.json"
     with open(out_file, "w") as f:

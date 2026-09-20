@@ -181,62 +181,33 @@ def book_tickets(
             detail="Booking quantity must be at least 1",
         )
 
-    # Check concurrency mode: naive (baseline LLM) vs optimized (production row locking)
-    if settings.CONCURRENCY_MODE == "naive":
-        # NAIVE BASELINE IMPLEMENTATION:
-        # Intentionally reads without row locking (no SELECT FOR UPDATE).
-        # Multiple concurrent requests can read the same available_tickets before committing.
-        event = db.query(Event).filter(Event.id == event_id).first()
-        if not event:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Event not found")
+    # OPTIMIZED CONCURRENCY-SAFE IMPLEMENTATION:
+    # Uses row-level lock (SELECT FOR UPDATE) within an atomic PostgreSQL transaction.
+    # Guarantees serialized inventory decrements and mathematically prevents overselling.
+    event = (
+        db.query(Event)
+        .filter(Event.id == event_id)
+        .with_for_update()
+        .first()
+    )
+    if not event:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Event not found")
 
-        # Simulate small application interleaving window under concurrent load
-        time.sleep(0.005)
-
-        if event.available_tickets < payload.quantity:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail=f"Insufficient tickets remaining. Requested: {payload.quantity}, Available: {event.available_tickets}",
-            )
-
-        event.available_tickets -= payload.quantity
-        booking = Booking(
-            event_id=event.id,
-            customer_id=current_user.id,
-            quantity=payload.quantity,
+    if event.available_tickets < payload.quantity:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Insufficient tickets remaining. Requested: {payload.quantity}, Available: {event.available_tickets}",
         )
-        db.add(booking)
-        db.commit()
-        db.refresh(booking)
 
-    else:
-        # OPTIMIZED PRODUCTION IMPLEMENTATION:
-        # Uses row-level lock (SELECT FOR UPDATE) within an atomic PostgreSQL transaction.
-        # Guarantees serialized inventory decrements and prevents overselling.
-        event = (
-            db.query(Event)
-            .filter(Event.id == event_id)
-            .with_for_update()
-            .first()
-        )
-        if not event:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Event not found")
-
-        if event.available_tickets < payload.quantity:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail=f"Insufficient tickets remaining. Requested: {payload.quantity}, Available: {event.available_tickets}",
-            )
-
-        event.available_tickets -= payload.quantity
-        booking = Booking(
-            event_id=event.id,
-            customer_id=current_user.id,
-            quantity=payload.quantity,
-        )
-        db.add(booking)
-        db.commit()
-        db.refresh(booking)
+    event.available_tickets -= payload.quantity
+    booking = Booking(
+        event_id=event.id,
+        customer_id=current_user.id,
+        quantity=payload.quantity,
+    )
+    db.add(booking)
+    db.commit()
+    db.refresh(booking)
 
     # Schedule Background Task 1: Booking confirmation email (AFTER DB commit)
     background_tasks.add_task(
